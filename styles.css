@@ -1,6 +1,6 @@
-/* ─────────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────
    CDL Calculator — styles.css
-   ───────────────────────────────────────────────────────────── */
+   ───────────────────────────────────────────────────────── */
 
 /* ── Reset ── */
 *, *::before, *::after {
@@ -21,29 +21,31 @@
   --blue:          #2563eb;
   --blue-hover:    #3b82f6;
   --blue-active:   #1d4ed8;
-  --blue-glow:     rgba(37, 99, 235, 0.35);
-  --blue-glow-sm:  rgba(37, 99, 235, 0.18);
+  --blue-glow:     rgba(37, 99, 235, 0.32);
 
   --text:          #e2e8f0;
   --text-dim:      #4e6282;
   --text-muted:    #2a3f60;
   --error:         #ef4444;
-  --error-glow:    rgba(239, 68, 68, 0.25);
+  --error-glow:    rgba(239, 68, 68, 0.22);
 
-  --font:          'JetBrains Mono', monospace;
+  --font:          'Roboto Mono', monospace;
+
+  /* ── Calculator fixed dimensions ──
+     These never change. On small screens the JS scales
+     the whole wrapper down using a CSS custom property.   */
+  --calc-w:        340px;
+  --key-h:         68px;
+  --display-h:     108px;
   --radius:        14px;
-  --radius-sm:     8px;
-  --transition:    110ms ease;
-
-  /* Entrance animation timing */
-  --enter-delay-header: 0ms;
-  --enter-delay-calc:   180ms;
-  --enter-delay-footer: 360ms;
+  --t:             110ms ease;
 }
 
 /* ── Base ── */
 html, body {
   height: 100%;
+  width: 100%;
+  overflow: hidden; /* prevents any bounce/scroll on mobile */
 }
 
 body {
@@ -54,11 +56,12 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 24px 16px;
-  overflow-x: hidden;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── Canvas background ── */
+/* ── Canvas ── */
 #bg-canvas {
   position: fixed;
   inset: 0;
@@ -66,53 +69,59 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-/* ── Wrapper ── */
+/* ── Wrapper
+   JS sets --scale on this element; everything inside
+   scales proportionally so layout never breaks.          ── */
 .wrapper {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  width: 100%;
-  max-width: 360px;
+  gap: 18px;
+  /* scale is set to 1 by default; JS overrides on small screens */
+  transform: scale(var(--scale, 1));
+  transform-origin: center center;
 }
 
 /* ── Header ── */
 .site-header {
-  width: 100%;
+  width: var(--calc-w);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-
+  gap: 10px;
   opacity: 0;
-  transform: translateY(-16px);
-  animation: fadeSlideDown 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--enter-delay-header) forwards;
+  transform: translateY(-14px);
+  animation: fadeSlideDown 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0ms forwards;
 }
 
 .header__logo {
   display: flex;
   align-items: center;
   gap: 8px;
-  letter-spacing: 0.18em;
-  font-size: 13px;
+  letter-spacing: 0.2em;
+  font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .header__logo-bracket {
   color: var(--blue);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 300;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .header__logo-text {
   color: var(--text);
-  /* glitch/typewriter handled by JS */
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  min-width: 120px; /* prevent layout shift during glitch animation */
+  text-align: center;
 }
 
 .header__line {
@@ -130,62 +139,56 @@ body {
   overflow: hidden;
 }
 
-/* Sweep shimmer on the header line */
 .header__line::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: -60%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(255, 255, 255, 0.6),
-    transparent
-  );
-  animation: headerSweep 3.5s ease-in-out 0.8s infinite;
+  top: 0; left: -60%;
+  width: 60%; height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.55), transparent);
+  animation: headerSweep 3.5s ease-in-out 1s infinite;
 }
 
 @keyframes headerSweep {
   0%   { left: -60%; opacity: 0; }
-  10%  { opacity: 1; }
+  8%   { opacity: 1; }
   100% { left: 160%; opacity: 0; }
 }
 
-/* ── Calculator ── */
+/* ── Calculator shell — FIXED SIZE, never flexible ── */
 .calculator {
-  width: 100%;
+  width:     var(--calc-w);
+  min-width: var(--calc-w);
+  max-width: var(--calc-w);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow:
     0 0 0 1px var(--border),
-    0 0 40px -10px var(--blue-glow),
-    0 24px 60px -20px rgba(0, 0, 0, 0.7);
-
+    0 0 50px -8px var(--blue-glow),
+    0 28px 64px -20px rgba(0, 0, 0, 0.75);
   opacity: 0;
-  transform: translateY(20px) scale(0.97);
-  animation: fadeSlideUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--enter-delay-calc) forwards;
-
+  transform: translateY(18px) scale(0.97);
+  animation: fadeSlideUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) 160ms forwards;
   transition: box-shadow 0.4s ease;
 }
 
 .calculator:focus-within {
   box-shadow:
     0 0 0 1px var(--border-bright),
-    0 0 60px -8px var(--blue-glow),
-    0 24px 60px -20px rgba(0, 0, 0, 0.7);
+    0 0 70px -6px var(--blue-glow),
+    0 28px 64px -20px rgba(0, 0, 0, 0.75);
 }
 
-/* ── Display ── */
+/* ── Display — FIXED HEIGHT, never collapses ── */
 .display {
   position: relative;
-  padding: 20px 20px 16px;
+  height: var(--display-h);
+  min-height: var(--display-h);
+  max-height: var(--display-h);
+  padding: 12px 18px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
-  min-height: 104px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -194,89 +197,96 @@ body {
   overflow: hidden;
 }
 
-/* Subtle scan-line effect on display */
+/* Scanline overlay */
 .display::before {
   content: '';
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(
     0deg,
-    transparent,
-    transparent 3px,
-    rgba(255, 255, 255, 0.012) 3px,
-    rgba(255, 255, 255, 0.012) 4px
+    transparent, transparent 3px,
+    rgba(255,255,255,0.012) 3px,
+    rgba(255,255,255,0.012) 4px
   );
   pointer-events: none;
   z-index: 1;
 }
 
-/* Blue corner accent */
+/* Blue accent bar top-right */
 .display::after {
   content: '';
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 48px;
-  height: 2px;
+  top: 0; right: 0;
+  width: 44px; height: 2px;
   background: var(--blue);
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
+/* Expression row — always takes up its space even when blank */
 .display__expr {
   position: relative;
   z-index: 2;
   font-size: 11px;
   font-weight: 300;
   color: var(--text-dim);
-  min-height: 15px;
+  height: 16px;      /* fixed — never collapses */
+  line-height: 16px;
   letter-spacing: 0.04em;
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
-  transition: opacity 0.2s ease;
+  width: 100%;
 }
 
+/* Main value row — fixed height container, font shrinks for long numbers */
 .display__value {
   position: relative;
   z-index: 2;
-  font-size: 38px;
+  font-size: 40px;
   font-weight: 400;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  word-break: break-all;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
+  width: 100%;
   transition:
-    color var(--transition),
+    color var(--t),
+    font-size 0.12s ease,
     transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.display__value.shrink-1 { font-size: 30px; }
+.display__value.shrink-2 { font-size: 22px; }
+
 .display__value.pop {
-  transform: scale(1.04);
+  transform: scale(1.05);
 }
 
 .display__value.is-error {
   color: var(--error);
-  font-size: 18px;
-  letter-spacing: 0.02em;
-  text-shadow: 0 0 20px var(--error-glow);
+  font-size: 16px;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 18px var(--error-glow);
 }
 
-/* Blinking cursor */
+/* Blinking status dot bottom-left */
 .display__cursor {
   position: absolute;
-  bottom: 16px;
-  left: 20px;
-  width: 6px;
-  height: 6px;
+  bottom: 13px; left: 17px;
+  width: 5px; height: 5px;
   border-radius: 50%;
   background: var(--blue);
-  opacity: 0.7;
-  animation: blink 2s ease-in-out infinite;
+  opacity: 0.6;
+  animation: blink 2.2s ease-in-out infinite;
   z-index: 2;
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 0.7; }
-  50%       { opacity: 0.15; }
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 0.1; }
 }
 
 /* ── Keypad ── */
@@ -287,7 +297,7 @@ body {
   background: var(--border);
 }
 
-/* ── Keys ── */
+/* ── Keys — FIXED HEIGHT ── */
 .key {
   position: relative;
   overflow: hidden;
@@ -295,27 +305,26 @@ body {
   border: none;
   color: var(--text);
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 400;
   cursor: pointer;
   padding: 0;
-  height: 68px;
+  height: var(--key-h);
   display: flex;
   align-items: center;
   justify-content: center;
   transition:
-    background var(--transition),
-    color var(--transition),
-    transform var(--transition);
+    background var(--t),
+    color var(--t),
+    transform var(--t);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* prevents double-tap zoom on mobile */
   outline: none;
   letter-spacing: 0.01em;
 }
 
-.key:hover {
-  background: var(--surface-2);
-}
+.key:hover { background: var(--surface-2); }
 
 .key:active,
 .key.is-pressed {
@@ -323,13 +332,13 @@ body {
   background: var(--surface-3);
 }
 
-/* Ripple element injected by JS */
+/* Ripple */
 .key .ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255,255,255,0.11);
   transform: scale(0);
-  animation: rippleAnim 0.45s linear forwards;
+  animation: rippleAnim 0.42s linear forwards;
   pointer-events: none;
 }
 
@@ -341,54 +350,34 @@ body {
 .key--op {
   background: var(--blue);
   color: #fff;
-  font-size: 18px;
+  font-size: 19px;
 }
-
-.key--op:hover {
-  background: var(--blue-hover);
-}
-
+.key--op:hover                { background: var(--blue-hover); }
 .key--op:active,
-.key--op.is-pressed {
-  background: var(--blue-active);
-  transform: scale(0.91);
-}
-
-.key--op .ripple {
-  background: rgba(255, 255, 255, 0.18);
-}
+.key--op.is-pressed           { background: var(--blue-active); transform: scale(0.91); }
+.key--op .ripple              { background: rgba(255,255,255,0.17); }
 
 /* ── Clear key ── */
 .key--clear {
   color: var(--error);
   font-weight: 500;
 }
-
-.key--clear:hover {
-  background: rgba(239, 68, 68, 0.07);
-}
+.key--clear:hover { background: rgba(239,68,68,0.07); }
 
 /* ── Backspace key ── */
 .key--back {
-  font-size: 18px;
+  font-size: 19px;
   color: var(--text-dim);
 }
-
-.key--back:hover {
-  color: var(--text);
-  background: var(--surface-2);
-}
+.key--back:hover { color: var(--text); background: var(--surface-2); }
 
 /* ── Sign key ── */
 .key--sign {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-dim);
   letter-spacing: -0.01em;
 }
-
-.key--sign:hover {
-  color: var(--text);
-}
+.key--sign:hover { color: var(--text); }
 
 /* ── Equals key ── */
 .key--equals {
@@ -396,21 +385,13 @@ body {
   color: #fff;
   font-size: 22px;
   font-weight: 300;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
 }
-
-.key--equals:hover {
-  background: var(--blue-hover);
-}
-
+.key--equals:hover                { background: var(--blue-hover); }
 .key--equals:active,
-.key--equals.is-pressed {
-  background: var(--blue-active);
-  transform: scale(0.91);
-}
+.key--equals.is-pressed           { background: var(--blue-active); transform: scale(0.91); }
 
-/* ── Corner radii on bottom row ── */
-.key:nth-child(17) { border-bottom-left-radius: calc(var(--radius) - 1px); }
+/* ── Bottom row corner radii ── */
+.key:nth-child(17) { border-bottom-left-radius:  calc(var(--radius) - 1px); }
 .key:last-child    { border-bottom-right-radius: calc(var(--radius) - 1px); }
 
 /* ── Footer ── */
@@ -421,24 +402,20 @@ body {
   font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 0.1em;
-
   opacity: 0;
-  animation: fadeIn 0.5s ease var(--enter-delay-footer) forwards;
+  animation: fadeIn 0.5s ease 380ms forwards;
 }
-
-.footer__sep {
-  color: var(--border-bright);
-}
+.footer__sep { color: var(--border-bright); }
 
 /* ── Entrance animations ── */
 @keyframes fadeSlideDown {
-  from { opacity: 0; transform: translateY(-16px); }
+  from { opacity: 0; transform: translateY(-14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
 @keyframes fadeIn {
@@ -446,14 +423,10 @@ body {
   to   { opacity: 1; }
 }
 
-/* ── Responsive ── */
-@media (max-width: 380px) {
-  .key           { height: 60px; font-size: 15px; }
-  .key--op       { font-size: 17px; }
-  .key--equals   { font-size: 19px; }
-  .display__value { font-size: 32px; }
-}
-
-@media (max-height: 680px) {
-  .key { height: 58px; }
+/* ── Landscape mobile with limited height ── */
+@media (max-height: 560px) and (orientation: landscape) {
+  :root {
+    --key-h:       52px;
+    --display-h:   84px;
+  }
 }
